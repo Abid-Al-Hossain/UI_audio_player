@@ -2,9 +2,33 @@
 
 import type { CSSProperties } from "react";
 import type { AudioPlayerState } from "../types";
+import { SYSTEM_FONTS } from "@/components/shared/typography/fontConstants";
+
+function resolveFont(state: { fontBucket: "system" | "google"; googleFontFamily: string; systemFontIdx: number }): string {
+  return state.fontBucket === "google"
+    ? `"${state.googleFontFamily}", sans-serif`
+    : (SYSTEM_FONTS[state.systemFontIdx]?.css ?? "inherit");
+}
+
+function buildShadow(state: { shadowEnabled: boolean; shadowX: number; shadowY: number; shadowBlur: number; shadowSpread: number; shadowColor: string; shadowOpacity: number }): string {
+  if (!state.shadowEnabled) return "none";
+  const hex = Math.round(state.shadowOpacity * 255).toString(16).padStart(2, "0");
+  return `${state.shadowX}px ${state.shadowY}px ${state.shadowBlur}px ${state.shadowSpread}px ${state.shadowColor}${hex}`;
+}
+
+function buildRadius(state: { radiusLinked: boolean; radius: number; radiusTL: number; radiusTR: number; radiusBR: number; radiusBL: number }): string {
+  return state.radiusLinked
+    ? `${state.radius}px`
+    : `${state.radiusTL}px ${state.radiusTR}px ${state.radiusBR}px ${state.radiusBL}px`;
+}
 
 function shell(state: AudioPlayerState): CSSProperties {
-  return { width: state.width, minHeight: state.height, padding: state.padding, gap: state.gap, borderRadius: state.radius, border: `${state.borderWidth}px solid ${state.border}`, boxShadow: `0 ${Math.round(state.shadow / 3)}px ${state.shadow}px rgba(0,0,0,.28)`, background: state.background, color: state.foreground, fontFamily: state.fontFamily, opacity: state.disabled ? 0.55 : 1 };
+  return { width: state.width, minHeight: state.height, padding: state.padding, gap: state.gap, borderRadius: buildRadius(state), border: `${state.borderWidth}px ${state.borderStyle} ${state.border}`, boxShadow: buildShadow(state), background: state.background, color: state.foreground, fontFamily: resolveFont(state),
+    fontStyle: state.fontStyle,
+    textTransform: state.textTransform,
+    textDecoration: state.textDecoration,
+    letterSpacing: `${state.letterSpacing}${state.letterSpacingUnit}`,
+    lineHeight: state.lineHeight, opacity: state.disabled ? 0.55 : 1 };
 }
 
 export default function LivePreview({ state }: { state: AudioPlayerState }) {
@@ -25,7 +49,7 @@ export default function LivePreview({ state }: { state: AudioPlayerState }) {
     <audio controls src={state.src || undefined} muted={state.muted} loop={state.loop} preload={state.preload} aria-label={state.ariaLabel} className="w-full" style={{ accentColor: state.accent }} />
     {state.showTimeline && <div className="grid gap-2" aria-label={`${state.title} timeline preview`}>
       <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, currentColor 14%, transparent)" }} role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-        <div className="h-full rounded-full" style={{ width: `${progress}%`, background: state.accent, transition: state.motion ? "width 0.1s linear" : "none" }} />
+        <div className="h-full rounded-full" style={{ width: `${progress}%`, background: state.accent, transition: state.transitionDuration > 0 ? "width 0.1s linear" : "none" }} />
       </div>
       <div className="flex justify-between text-xs" style={{ color: "color-mix(in oklab, currentColor 72%, transparent)" }}>
         <span>{formatTime(current)}</span>
